@@ -1,7 +1,16 @@
 const tf = require('@tensorflow/tfjs-node');
+// 모델 파일의 경로 및 모델 변수 초기화
+const modelPath = 'models/ResNet50V2_epoch10_2'; // 모델 파일 경로
+const model = tf.node.loadSavedModel(modelPath);
 
-let model; // 모델 변수
-
+async function loadModel() {
+    try {
+        const model = await tf.node.loadSavedModel(modelPath);
+        console.log('모델이 성공적으로 로드되었습니다.', model);
+    } catch (error) {
+        console.error('모델 로드 중 에러:', error);
+    }
+}
 // 모델에 이미지 제출
 async function submitToModel(imageTensor) {
     try {
@@ -22,4 +31,4 @@ async function submitToModel(imageTensor) {
     }
 }
 
-module.exports = { submitToModel };
+module.exports = { submitToModel, loadModel };

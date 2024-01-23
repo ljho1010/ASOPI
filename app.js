@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const axios = require('axios');
 const tfServer = require('./tfServer'); // TensorFlow 서버 모듈
+const tfFunction = require('./tfFunction');
 const database = require('./database');
 const user = require('./user');
 const jwt = require('jsonwebtoken'); // jwt 모듈 추가
@@ -135,5 +136,6 @@ app.get('/diagnosis', verifyToken, (req, res) => {
 // 서버 시작 시 Oracle DB 연결
 app.listen(port, async () => {
     await database.connectToDB();
+    await tfFunction.loadModel();
     console.log(`${port}번 포트에서 열렸습니다.`);
 });

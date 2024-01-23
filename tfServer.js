@@ -27,45 +27,6 @@ const upload = multer({
     },
 });
 
-// 모델 파일의 경로 및 모델 변수 초기화
-const modelPath = 'models/your_model'; // 모델 파일 경로
-let model;
-
-// 모델 로드 간격 설정
-const modelLoadInterval = 5000; // 5초 간격으로 모델 로드를 시도
-
-// 모델 로드 함수
-function loadModel() {
-    let count = modelLoadInterval / 1000;
-
-    function printCountdown() {
-        console.log(`모델 로드를 시도합니다... (남은 시간: ${count}초)`);
-        count--;
-
-        if (count >= 0) {
-            setTimeout(printCountdown, 1000); // 1초마다 호출
-        } else {
-            // 5초 경과 후에 모델 로드 시도
-            tf.loadLayersModel(`file://${modelPath}`)
-                .then((loadedModel) => {
-                    model = loadedModel;
-                    console.log('모델이 성공적으로 로딩되었습니다.');
-                })
-                .catch((error) => {
-                    console.error('모델을 불러오는데 실패했습니다', error);
-                    console.log(`5초 뒤 다시 모델 로드를 시도합니다...`);
-                    setTimeout(loadModel, modelLoadInterval);
-                });
-        }
-    }
-
-    // 초기 카운트다운 시작
-    printCountdown();
-}
-
-// 초기 모델 로드
-loadModel();
-
 // 이미지 업로드 및 모델에 제출 처리
 tfServer.post('/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {

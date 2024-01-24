@@ -7,7 +7,6 @@ const tf = require('@tensorflow/tfjs-node');
 const { submitToModel, preprocessImage, loadModel } = require('./tfFunction'); // TensorFlow 관련 함수
 
 const tfServer = express.Router();
-await loadModel();
 
 // multer를 사용해 이미지 업로드 처리
 const storage = multer.memoryStorage(); // Buffer에 직접 파일을 저장
@@ -30,6 +29,7 @@ const upload = multer({
 
 // 이미지 업로드 및 모델에 제출 처리
 tfServer.post('/upload', upload.single('image'), async (req, res) => {
+    await loadModel();
     try {
         if (!req.file) {
             return res.status(400).send('No file uploaded.');

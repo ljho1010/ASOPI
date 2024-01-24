@@ -9,7 +9,6 @@ const jwt = require('jsonwebtoken'); // jwt 모듈 추가
 const cookieParser = require('cookie-parser'); // 쿠키 파서 모듈 추가
 const path = require('path');
 const app = express();
-require('dotenv').config();
 const port = process.env.PORT;
 
 // 쿠키 파서 미들웨어 등록
@@ -67,7 +66,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.get('/login/kakao', (req, res) => {
+app.get('/login/kakao', async (req, res) => {
     const clientID = process.env.KAKAO_ID;
     const redirectURI = process.env.KAKAO_URL;
 
@@ -78,32 +77,15 @@ app.get('/login/kakao', (req, res) => {
 
 app.get('/oauth', async (req, res) => {
     const { code } = req.query;
-    const clientID = process.env.KAKAO_ID;
-    const clientSecret = '';
-    const redirectURI = process.env.KAKAO_URL;
 
     try {
         // 카카오 토큰 받아오기
-        const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', {
-            grant_type: 'authorization_code',
-            client_id: clientID,
-            client_secret: clientSecret,
-            redirect_uri: redirectURI,
-            code,
-        });
-
-        const accessToken = tokenResponse.data.access_token;
+        const accessToken = await user.getKakaoToken(code);
+        console.log('카카오 토큰 : ', accessToken);
 
         // 카카오 사용자 정보 가져오기
-        const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
-
-        const userInfo = userResponse.data;
-        // 여기에서 userInfo를 사용하여 로그인 로직을 처리할 수 있습니다.
-
+        const userInfo = await user.getKakaoUserInfo(accessToken);
+        console.log('카카오 사용자 정보 : ', userInfo);
         res.json(userInfo);
     } catch (error) {
         console.error('카카오 API 오류:', error);

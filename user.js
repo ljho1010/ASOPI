@@ -1,4 +1,5 @@
 const oracledb = require('oracledb');
+const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // 회원가입
@@ -111,8 +112,66 @@ async function myPage(email) {
     }
 }
 
+// 카카오 토큰 받아오기
+async function getKakaoToken(code) {
+    try {
+        const clientID = process.env.KAKAO_ID;
+        const clientSecret = process.env.KAKAO_SECRET;
+        const redirectURI = process.env.KAKAO_URL;
+
+        const auth = Buffer.from(`${clientID}:${clientSecret}`).toString('base64');
+        const tokenResponse = await axios.post(
+            'https://kauth.kakao.com/oauth/token',
+            `grant_type=authorization_code&client_id=${clientID}&client_secret=${clientSecret}&redirect_uri=${redirectURI}&code=${code}`,
+            {
+                headers: {
+                    Authorization: `Basic ${auth}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+            }
+        );
+        const kakaoToken = tokenResponse.data.access_token;
+
+        return kakaoToken;
+    } catch (error) {
+        console.error('Error getting Kakao token:', error);
+        throw error;
+    }
+}
+
+// 카카오 사용자 정보 가져오기
+async function getKakaoUserInfo(accessToken) {
+    try {
+        const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        // 로그인한 사용자의 전체 정보를 콘솔에 출력
+        console.log('카카오 사용자 전체 정보:', userResponse.data);
+
+        // 사용자의 닉네임 및 이메일 가져오기
+        const profileNickname = userResponse.data.properties?.nickname;
+        const accountEmail = userResponse.data.kakao_account?.email;
+
+        console.log('프로필 닉네임:', profileNickname);
+        console.log('계정 이메일:', accountEmail);
+
+        return {
+            profileNickname,
+            accountEmail,
+        };
+    } catch (error) {
+        console.error('Error getting Kakao user info:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     signUp,
     login,
     myPage,
+    getKakaoToken,
+    getKakaoUserInfo,
 };

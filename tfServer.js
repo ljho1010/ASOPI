@@ -6,8 +6,8 @@ const fs = require('fs').promises;
 const tf = require('@tensorflow/tfjs-node');
 const { submitToModel, preprocessImage, loadModel } = require('./tfFunction'); // TensorFlow 관련 함수
 
-loadModel();
 const tfServer = express.Router();
+await loadModel();
 
 // multer를 사용해 이미지 업로드 처리
 const storage = multer.memoryStorage(); // Buffer에 직접 파일을 저장
@@ -30,23 +30,27 @@ const upload = multer({
 
 // 이미지 업로드 및 모델에 제출 처리
 tfServer.post('/upload', upload.single('image'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).send('No file uploaded.');
+    try {
+        if (!req.file) {
+            return res.status(400).send('No file uploaded.');
+        }
+        //이미지 정보 로깅
+        console.log('image received: ', req.file);
+
+        const imageBuffer = req.file.buffer;
+
+        const imageTensor = tf.node.decodeImage(imageBuffer);
+
+        // 모델이 로드 되지 않은 경우
+        if (!model) {
+            return res.status(500).send('Model not loaded. Please try again later.');
+        }
+        // 모델에 이미지 제출 및 결과 출력
+        const modelResult = await submitToModel(imageTensor);
+    } catch (error) {
+        console.error('Error during image processing:', error.message);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-    //이미지 정보 로깅
-    console.log('image received: ', req.file);
-
-    const imageBuffer = req.file.buffer;
-
-    const imageTensor = tf.node.decodeImage(imageBuffer);
-
-    // 모델이 로드 되지 않은 경우
-    if (!model) {
-        return res.status(500).send('Model not loaded. Please try again later.');
-    }
-    // 모델에 이미지 제출 및 결과 출력
-    const modelResult = await submitToModel(imageTensor);
-
     // 데이터 베이스에 모델 결과 저장
     try {
         await database.saveModelResult(modelResult);

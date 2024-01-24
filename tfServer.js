@@ -4,8 +4,9 @@ const database = require('./database');
 const path = require('path');
 const fs = require('fs').promises;
 const tf = require('@tensorflow/tfjs-node');
-const { submitToModel, preprocessImage } = require('./tfFunction'); // TensorFlow 관련 함수
+const { submitToModel, preprocessImage, loadModel } = require('./tfFunction'); // TensorFlow 관련 함수
 
+loadModel();
 const tfServer = express.Router();
 
 // multer를 사용해 이미지 업로드 처리

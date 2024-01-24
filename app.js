@@ -52,14 +52,15 @@ app.post('/login', async (req, res) => {
 
     try {
         const userInfo = await user.login(email, password);
+        const redirectTo = 'http://localhost:3000';
 
         // JWT 생성 및 쿠키에 저장
         const token = jwt.sign({ userId: userInfo.id, userName: userInfo.name }, process.env.JWT_SECRET, {
             expiresIn: '2h',
         });
         res.cookie('token', token, { httpOnly: true });
-
-        res.json({ message: 'Login successful!', user: userInfo });
+        // 클라이언트에게 리다이렉트 URL을 전달
+        res.json({ message: 'Login successful!', user: userInfo, redirectTo: redirectTo || '/' });
     } catch (error) {
         console.error('Error logging in:', error);
         res.status(401).json({ error: 'Login failed' });
@@ -127,6 +128,20 @@ function verifyToken(req, res, next) {
         next();
     });
 }
+
+// 마이페이지
+app.get('/mypage/:email', async (req, res) => {
+    try {
+        const email = req.params.email;
+        const userRecords = await user.myPage(email);
+
+        // 마이페이지 정보를 클라이언트에게 전달
+        res.json({ success: true, data: userRecords });
+    } catch (error) {
+        console.error('Error in /mypage/:email API:', error.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
 
 // 업로드 폼 보여주기
 app.get('/diagnosis', verifyToken, (req, res) => {

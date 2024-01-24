@@ -67,6 +67,38 @@ async function saveModelResult(modelResult) {
     }
 }
 
+// 병명을 호출하는 함수
+async function getDisease(modelResult) {
+    const connection = await oracledb.getConnection();
+    try {
+        const sql = 'SELECT NAME FROM DISEASE WHERE DISEASE_CODE = :modelResult';
+        const binds = { modelResult };
+
+        const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+
+        // 결과가 있는지 확인하고 있다면 name 반환, 없다면 null 반환
+        if (result.rows.length > 0) {
+            const { NAME } = result.rows[0];
+            const jsonData = JSON.stringify(NAME);
+            return jsonData;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Error getting symptom from database:', error.message);
+        throw error;
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (error) {
+                console.error('Error closing database connection:', error.message);
+            }
+        }
+    }
+}
+
+// 증상과 설명을 데이터베이스에서 가져오는 함수
 async function getSymptom(modelResult) {
     const connection = await oracledb.getConnection();
     try {
@@ -83,15 +115,15 @@ async function getSymptom(modelResult) {
         } else {
             return null;
         }
-    } catch (err) {
-        console.error('Error getting symptom from database:', err.message);
-        throw err;
+    } catch (error) {
+        console.error('Error getting symptom from database:', error.message);
+        throw error;
     } finally {
         if (connection) {
             try {
                 await connection.close();
-            } catch (err) {
-                console.error('Error closing database connection:', err.message);
+            } catch (error) {
+                console.error('Error closing database connection:', error.message);
             }
         }
     }
@@ -101,4 +133,5 @@ module.exports = {
     connectToDB,
     saveModelResult,
     getSymptom,
+    getDisease,
 };

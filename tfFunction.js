@@ -1,6 +1,6 @@
 const tf = require('@tensorflow/tfjs-node');
 // 모델 파일의 경로 및 모델 변수 초기화
-const modelPath = 'models/ResNet50V2_epoch10_2'; // 모델 파일 경로
+const modelPath = 'models/ResNet50V2_epoch10'; // 모델 파일 경로
 let model;
 
 // class_dictionary 전역으로 선언
@@ -36,39 +36,79 @@ const class_dictionary = {
     D07: 'seborrhoeic dermatitis baby',
     D08: 'heat rash',
 };
-
+// 모델 불러오기
 async function loadModel() {
     try {
         if (!model) {
             // 모델이 이미 로드되어 있지 않은 경우에만 로드
             model = await tf.node.loadSavedModel(modelPath);
             console.log('모델이 성공적으로 로드되었습니다.', model);
+
+            // 추가: 모델이 정상적으로 로드되었을 때 로그
+            if (model && model.layers) {
+                const firstLayer = await model.layers[0];
+                console.log('첫 번째 레이어의 입력 형태 : ', firstLayer.inputShape);
+            } else {
+                console.log('레이어 정보를 가져올 수 없습니다.');
+            }
         } else {
             console.log('모델이 이미 로드되어 있습니다.');
         }
+
+        // 모델 반환
+        return model;
     } catch (error) {
         console.error('모델 로드 중 에러:', error);
+        throw error;
     }
 }
+
+// 이미지 전처리
+async function preprocessImage(imageBuffer) {
+    // 이미지를 uint8 텐서로 디코딩
+    const imageTensor = tf.node.decodeImage(imageBuffer);
+
+    // 이미지 텐서의 데이터 타입을 float32로 변경
+    const floatImageTensor = imageTensor.toFloat();
+
+    // 이미지 크기를 [224, 224]로 조정
+    const resizedImageTensor = tf.image.resizeBilinear(floatImageTensor, [224, 224]);
+
+    // 이미지를 [0, 1] 범위로 정규화
+    const normalizedImageTensor = tf.div(resizedImageTensor, tf.scalar(255));
+    console.log('이미지 크기:', normalizedImageTensor.shape);
+
+    // 이미지를 [224, 224, 3] 형태로 reshape
+    const reshapedImageTensor = normalizedImageTensor.reshape([1, 224, 224, 3]);
+    console.log('전처리된 이미지 형태:', reshapedImageTensor.shape);
+
+    return reshapedImageTensor;
+}
+
 // 모델에 이미지 제출
-async function submitToModel(imageTensor) {
+async function submitToModel(modelResult) {
     try {
-        // 모델이 로드되지 않은 경우 에러 메시지 출력
         if (!model) {
             console.error('모델이 로드 되지 않았습니다.');
             return 'Error submitting to model';
         }
         // 모델 예측 수행
-        const predictions = model.predict(imageTensor);
+        const predictions = Array.from(model.predict(modelResult).dataSync());
+        console.log('모델 예측 결과 : ', predictions);
 
         // 가장 큰 값을 갖는 인덱스 찾기
         const predictedIndex = predictions.indexOf(Math.max(...predictions));
+        console.log('가장 큰 값을 갖는 인덱스 : ', predictedIndex);
 
         // 해당 클래스 찾기
         const predictedClass = Object.keys(class_dictionary)[predictedIndex];
+        console.log('해당 클래스 : ', predictedClass);
 
         // 예측 결과 반환
-        return class_dictionary[predictedClass];
+        const result = class_dictionary[predictedClass];
+        console.log('예측 결과 : ', result);
+
+        return result;
     } catch (error) {
         // 예외 발생 시 에러 메시지 출력
         console.error('Error submitting to model:', error);
@@ -76,4 +116,4 @@ async function submitToModel(imageTensor) {
     }
 }
 
-module.exports = { submitToModel, loadModel };
+module.exports = { submitToModel, loadModel, preprocessImage };

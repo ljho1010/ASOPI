@@ -1,0 +1,26 @@
+<!-- result.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Result Page</title>
+    </head>
+    <body>
+        <h1>결과</h1>
+        <div id="result-container"></div>
+
+        <script>
+            // 쿼리 파라미터에서 result 값을 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            const result = urlParams.get('result');
+
+            // 가져온 result 값을 페이지에 출력
+            const resultContainer = document.getElementById('result-container');
+            resultContainer.textContent = `감지된 병변: ${result}`;
+
+            // 이후에 필요한 작업 수행
+        </script>
+    </body>
+</html>

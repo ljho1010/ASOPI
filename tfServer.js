@@ -6,6 +6,8 @@ const fs = require('fs').promises;
 const tf = require('@tensorflow/tfjs-node');
 const { submitToModel, preprocessImage, loadModel } = require('./tfFunction'); // TensorFlow 관련 함수
 
+let model;
+
 const tfServer = express.Router();
 
 // multer를 사용해 이미지 업로드 처리
@@ -15,7 +17,7 @@ const storage = multer.memoryStorage(); // Buffer에 직접 파일을 저장
 const upload = multer({
     storage: storage,
     // limits: {
-    //   fileSize: 5 * 1024 * 1024, // 5MB 제한
+    //     fileSize: 10 * 1024 * 1024, // 10MB 제한
     // },
     fileFilter: (req, file, cb) => {
         // 파일 형식 제한
@@ -29,26 +31,34 @@ const upload = multer({
 
 // 이미지 업로드 및 모델에 제출 처리
 tfServer.post('/upload', upload.single('image'), async (req, res) => {
-    await loadModel();
+    //await loadModel();
     try {
         if (!req.file) {
             return res.status(400).send('No file uploaded.');
         }
         //이미지 정보 로깅
         console.log('image received: ', req.file);
+        // 모델 로드
+        await loadModel();
 
         const imageBuffer = req.file.buffer;
-        // 이미지를 uint8 텐서로 디코딩
-        const imageTensor = tf.node.decodeImage(imageBuffer);
-        // 이미지 텐서의 데이터 타입을 float32로 변경
-        const floatImageTensor = imageTensor.toFloat();
 
-        // 모델이 로드 되지 않은 경우
-        if (!model) {
-            return res.status(500).send('Model not loaded. Please try again later.');
-        }
+        // 이미지를 전처리 함수에 대입.
+        const inputTensor = await preprocessImage(imageBuffer);
+
         // 모델에 이미지 제출 및 결과 출력
-        const modelResult = await submitToModel(floatImageTensor);
+        const modelResult = await submitToModel(inputTensor);
+
+        // 결과 페이지로 이동
+        res.redirect(`/result.html?result=${modelResult}`);
+
+        // 모델 연결 해제
+        model.dispose();
+
+        // // 모델이 로드 되지 않은 경우
+        // if (!model) {
+        //     return res.status(500).send('Model not loaded. Please try again later.');
+        // }
         // 출력된 결과를 함수에 넣어 병명 찾아오기
         try {
             const disease = await database.getDisease(modelResult);
@@ -60,7 +70,7 @@ tfServer.post('/upload', upload.single('image'), async (req, res) => {
         }
         // 이미지 처리중 에러 발생한 경우
     } catch (error) {
-        console.error('Error during image processing:', error.message);
+        console.error('Error during image processing:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

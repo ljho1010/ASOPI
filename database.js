@@ -2,11 +2,12 @@ const oracledb = require('oracledb');
 oracledb.autoCommit = true;
 require('dotenv').config();
 
-const connectDB = {
+const connectDB = ({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     connectString: process.env.DB_PATH,
-};
+    poolAlias: 'default'
+});
 
 // Oracle 데이터베이스 연결
 async function connectToDB() {
@@ -25,7 +26,7 @@ async function saveModelResult(modelResult) {
         const currentDate = new Date();
 
         //modelResult를 사용해 disease 테이블에서 질병 정보 가져오기
-        const diseaseQuery = `SELECT SYMPTOM, DESCRIPTION FROM DISEASE WHERE DISEASE_CODE = :modelResult`;
+        const diseaseQuery = `SELECT SYMPTOM, DESCRIPTION FROM DISEASE WHERE NAME = :modelResult`;
         const diseaseInfo = await connection.execute(diseaseQuery, [modelResult]);
 
         if (diseaseInfo.rows.length === 0) {
@@ -71,7 +72,7 @@ async function saveModelResult(modelResult) {
 async function getDisease(modelResult) {
     const connection = await oracledb.getConnection();
     try {
-        const sql = 'SELECT NAME FROM DISEASE WHERE DISEASE_CODE = :modelResult';
+        const sql = 'SELECT NAME FROM DISEASE WHERE NAME = :modelResult';
         const binds = { modelResult };
 
         const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
@@ -102,15 +103,15 @@ async function getDisease(modelResult) {
 async function getSymptom(modelResult) {
     const connection = await oracledb.getConnection();
     try {
-        const sql = 'SELECT SYMPTOM, DESCRIPTION FROM disease WHERE DISEASE_CODE = :modelResult';
-        const binds = [modelResult];
+        const sql = 'SELECT SYMPTOM FROM DISEASE WHERE NAME = :modelResult';
+        const binds = { modelResult };
 
         const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
 
         // 결과가 있는지 확인하고 있다면 symptom과 description 반환, 없다면 null 반환
         if (result.rows.length > 0) {
-            const { symptom, description } = result.rows[0];
-            const jsonData = JSON.stringify({ symptom, description });
+            const symptom = result.rows[0].SYMPTOM;
+            const jsonData = JSON.stringify( symptom );
             return jsonData;
         } else {
             return null;
@@ -129,9 +130,41 @@ async function getSymptom(modelResult) {
     }
 }
 
+// 병의 설명을 호출하는 함수
+async function getDescription(modelResult) {
+    const connection = await oracledb.getConnection();
+    try {
+        const sql = 'SELECT DESCRIPTION FROM DISEASE WHERE NAME = :modelResult';
+        const binds = { modelResult };
+
+        const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+
+        // 결과가 있는지 확인하고 있다면 name 반환, 없다면 null 반환
+        if (result.rows.length > 0) {
+            const description = result.rows[0].DESCRIPTION;
+            const jsonData = JSON.stringify(description);
+            return jsonData;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Error getting description from database:', error.message);
+        throw error;
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (error) {
+                console.error('Error closing database connection:', error.message);
+            }
+        }
+    }
+}
+
 module.exports = {
     connectToDB,
     saveModelResult,
     getSymptom,
     getDisease,
+    getDescription
 };

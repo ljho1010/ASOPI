@@ -5,36 +5,36 @@ let model;
 
 // class_dictionary 전역으로 선언
 const class_dictionary = {
-    A01: 'melanocytic nevus',
-    A02: 'mongolian spot',
-    A03: 'Beckers nevus',
-    A04: 'cafe au lait spot',
-    A05: 'salmon patch',
-    A06: 'epidermal nevi',
-    A07: 'nevus sebaceus',
-    A08: 'port-wine mark',
-    A09: 'infantile hemangioma',
-    B01: 'baby Psoriasis',
-    B02: 'urticaria',
-    B03: 'baby Acne',
-    B04: 'baby atopic dermatitis',
-    B05: 'lichen simplex chronicus',
-    B06: 'Nummular eczema',
-    C01: 'Herpes Simplex',
-    C02: 'Varicella',
-    C03: 'Molluscum Contagiosum',
-    C04: 'Impetigo',
-    C05: 'Hives Urticaria Acute',
-    C06: 'Tinea',
-    C07: 'hand-foot-and-mouth disease',
-    D01: 'vitiligo',
-    D02: 'juvenile xanthogranuloma',
-    D03: 'melanoma',
-    D04: 'keloids',
-    D05: 'mastocytoma',
-    D06: 'lichen striatus',
-    D07: 'seborrhoeic dermatitis baby',
-    D08: 'heat rash',
+    A01: '멜라닌 세포모반',
+    A02: '이소성몽고반점',
+    A03: '베커모반',
+    A04: '밀크커피모반',
+    A05: '연어반',
+    A06: '표피모반',
+    A07: '피지선모반',
+    A08: '화염상모반',
+    A09: '영아혈관종',
+    B01: '건선',
+    B02: '두드러기',
+    B03: '여드름(태열)',
+    B04: '아토피 피부염',
+    B05: '만성 단순태선 및 양진',
+    B06: '동전습진',
+    C01: '단순 헤르페스',
+    C02: '수두',
+    C03: '물사마귀',
+    C04: '농가진',
+    C05: '어루러기',
+    C06: '백선',
+    C07: '수족구',
+    D01: '백반증',
+    D02: '소아황색 육아종',
+    D03: '흑색선조',
+    D04: '켈로이드',
+    D05: '비만세포종',
+    D06: '선상태선',
+    D07: '영아 지루 피부염',
+    D08: '땀띠',
 };
 // 모델 불러오기
 async function loadModel() {
@@ -44,13 +44,21 @@ async function loadModel() {
             model = await tf.node.loadSavedModel(modelPath);
             console.log('모델이 성공적으로 로드되었습니다.', model);
 
-            // 추가: 모델이 정상적으로 로드되었을 때 로그
-            if (model && model.layers) {
-                const firstLayer = await model.layers[0];
-                console.log('첫 번째 레이어의 입력 형태 : ', firstLayer.inputShape);
-            } else {
-                console.log('레이어 정보를 가져올 수 없습니다.');
+             // 추가: 모델이 정상적으로 로드되었을 때 모델 인풋, 아웃풋 로그
+            if (model && model.signature && model.signature.inputs) {
+                const inputs = model.signature.inputs;
+                for (const inputName in inputs) {
+                    console.log(`Input Layer Name: ${inputName}, Input Shape: ${inputs[inputName].shape}`);
+                }
             }
+
+            if (model && model.signature && model.signature.outputs) {
+                const outputs = model.signature.outputs;
+                for (const outputName in outputs) {
+                    console.log(`Output Layer Name: ${outputName}, Output Shape: ${outputs[outputName].shape}`);
+                }
+            }
+
         } else {
             console.log('모델이 이미 로드되어 있습니다.');
         }
@@ -66,7 +74,7 @@ async function loadModel() {
 // 이미지 전처리
 async function preprocessImage(imageBuffer) {
     // 이미지를 uint8 텐서로 디코딩
-    const imageTensor = tf.node.decodeImage(imageBuffer);
+    const imageTensor = tf.node.decodeImage(imageBuffer, 3);
 
     // 이미지 텐서의 데이터 타입을 float32로 변경
     const floatImageTensor = imageTensor.toFloat();
@@ -107,6 +115,7 @@ async function submitToModel(modelResult) {
         // 예측 결과 반환
         const result = class_dictionary[predictedClass];
         console.log('예측 결과 : ', result);
+
 
         return result;
     } catch (error) {

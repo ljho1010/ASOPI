@@ -84,7 +84,7 @@ async function myPage(email) {
         const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
 
         if (result.rows.length === 0) {
-            console.log('No records found for the user.');
+            console.log('이전 기록이 존재하지 않습니다.');
             return [];
         }
 
@@ -95,7 +95,7 @@ async function myPage(email) {
             };
         });
 
-        console.log('User records fetched successfully:', userRecords);
+        console.log('유저 기록을 불러오는데 성공했습니다.:', userRecords);
         return userRecords;
     } catch (error) {
         console.error('Error fetching user records:', err.message);
